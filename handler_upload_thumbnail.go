@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,12 +44,12 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	defer file.Close()
-	mediaType := header.Header.Get("Content-Type")
-	fileExt := strings.TrimPrefix(mediaType, "image/")
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Unable to read data from file", err)
+	mediaType, _, _ := mime.ParseMediaType(header.Header.Get("Content-Type"))
+	if mediaType != "image/jpeg" && mediaType != "image/png" {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Invalid file type, only jpeg and png allowed. You uploaded %s", mediaType), nil)
 		return
 	}
+	fileExt := strings.TrimPrefix(mediaType, "image/")
 	videoMetaData, err := cfg.db.GetVideo(videoID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Unable to get video metadata", err)
